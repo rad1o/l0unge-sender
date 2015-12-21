@@ -7,8 +7,7 @@ enum l0unge_dmx_channels
 {
   LED_MODE      = 1,
   DISPLAY_MODE  = 2,
-  LED_0         = 3,
-  LED_SIZE      = 4
+  LED_0         = 3
 };
 
 typedef enum l0unge_led_mode

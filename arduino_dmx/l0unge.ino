@@ -100,7 +100,7 @@ void handleDMXData (void)
       break;
     case LED_INDIVIDUAL:
       msgType = AIRMSGTYPE_ALL_DIFF;
-      for (int led=0, chan=LED_0; led < MAX_NUM_LEDS; led++, chan+LED_SIZE)
+      for (int led=0, chan=LED_0; led < MAX_NUM_LEDS; led++, chan+RGB_SIZE)
       { 
         LEDs[led].x[0] = dmx_slave.getChannelValue(chan);
         LEDs[led].x[1] = dmx_slave.getChannelValue(chan+1);
@@ -163,14 +163,14 @@ void sendPacket(void)
       // Nothing more to do
       break;
     case AIRMSGTYPE_ALL_SAME:
-      softSerial.write((uint8_t)LED_SIZE);
+      softSerial.write((uint8_t)RGB_SIZE);
       softSerial.write(LEDs[0].x[0]);
       softSerial.write(LEDs[0].x[1]);
       softSerial.write(LEDs[0].x[2]);
       break;
     case AIRMSGTYPE_ALL_DIFF:
       // There us Software Serial .write() can't handle (buf,len) -.- 
-      softSerial.write((uint8_t)(MAX_NUM_LEDS*LED_SIZE));  
+      softSerial.write((uint8_t)(MAX_NUM_LEDS*RGB_SIZE));  
       for(int i=0;i<MAX_NUM_LEDS;i++)
       {
         softSerial.write(LEDs[i].x[0]);

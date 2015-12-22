@@ -67,8 +67,8 @@
 // Define which serial port to use as DMX port, only one can be 
 // selected at the time by uncommenting one of the following
 // lines
-#define USE_DMX_SERIAL_0
-//#define USE_DMX_SERIAL_1
+//#define USE_DMX_SERIAL_0
+#define USE_DMX_SERIAL_1
 //#define USE_DMX_SERIAL_2
 //#define USE_DMX_SERIAL_3
 

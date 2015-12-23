@@ -28,6 +28,8 @@
 // l0unge Message
 l0unge_msg_type_t msgType = AIRMSGTYPE_ERR;
 rgb LEDs[MAX_NUM_LEDS];
+rgb DisplayColor;
+uint8_t AnimationId = 0;
 
 // DMX
 DMX_Slave dmx_slave ( DMX_SLAVE_CHANNELS );
@@ -36,6 +38,7 @@ const unsigned long dmxTimeoutMillis = 10000UL;
 
 // serial Communication to the sender
 SoftwareSerial softSerial(10, 11); // RX, TX
+SoftwareSerial softDebug(0, 1);
 
 void setup() {
   // Enable DMX slave interface and start recording
@@ -48,6 +51,11 @@ void setup() {
 
   // Connection to the sender
   softSerial.begin(115200);
+  softDebug.begin(115200);
+
+  // Clear LED Array
+  memset(&LEDs, 0, MAX_NUM_LEDS*sizeof(rgb));
+  memset(&DisplayColor, 0, sizeof(rgb));
 }
 
 void loop()
@@ -85,6 +93,7 @@ void handleDMXData (void)
 {
 
 #ifdef DMX_L0UNGE
+  // Check LED Channel Setting
   l0unge_led_mode_t ledMode =
     (l0unge_led_mode_t)dmx_slave.getChannelValue(LED_MODE);
 
@@ -100,7 +109,7 @@ void handleDMXData (void)
       LEDs[0].x[2] = dmx_slave.getChannelValue(LED_0+2);
       break;
     case LED_INDIVIDUAL:
-      msgType = AIRMSGTYPE_ALL_DIFF;
+      msgType = AIRMSGTYPE_LED_ALL;
       for (int led=0, chan=LED_0; led < MAX_NUM_LEDS; led++, chan+RGB_SIZE)
       {
         LEDs[led].x[0] = dmx_slave.getChannelValue(chan);
@@ -111,31 +120,56 @@ void handleDMXData (void)
     case LED_MODE_ERR:
       break;
     default:
-      // \todo implement LED animations
+      msgType = AIRMSGTYPE_LED_ANI;
+      AnimationId = ledMode - LED_ANIMATION;
       break;
   }
+  if(LED_MODE_ERR != ledMode)
+  {
+    sendPacket();
+  }
 
-// \todo Implement Display Mode
-/*
+  // Check Display Channel Setting
   l0unge_display_mode_t displayMode =
     (l0unge_display_mode_t)dmx_slave.getChannelValue(DISPLAY_MODE);
   switch(displayMode)
   {
     case DISP_OFF:
+      msgType = AIRMSGTYPE_DISP_COLOR;
+      memset(&DisplayColor, 0, sizeof(rgb));
       break;
     case DISP_LIKE0:
+      msgType = AIRMSGTYPE_DISP_COLOR;
+      DisplayColor.x[0] = LEDs[0].x[0];
+      DisplayColor.x[1] = LEDs[0].x[1];
+      DisplayColor.x[2] = LEDs[0].x[2];
       break;
     case DISP_INDIVIDUAL:
+      msgType = AIRMSGTYPE_DISP_COLOR;
+      DisplayColor.x[0] = dmx_slave.getChannelValue(DISPLAY_COLOR);
+      DisplayColor.x[1] = dmx_slave.getChannelValue(DISPLAY_COLOR+1);
+      DisplayColor.x[2] = dmx_slave.getChannelValue(DISPLAY_COLOR+2);
       break;
     case DISP_MODE_ERR:
       break;
     default:
-      // \todo implement display animations
+      msgType = AIRMSGTYPE_DISP_ANI;
+      AnimationId = displayMode - DISP_ANIMATION;
       break;
   }
-*/
-#endif // DMX_l0unge
+  if(DISP_MODE_ERR != displayMode)
+  {
+    if(LED_LIKE0 != ledMode) 
+    // In this mode, the Display is the same as LED0,
+    // so we do not need to send a Disp Msg
+    {
+      sendPacket();
+    }
+  }
+
+#endif // DMX_L0UNGE
 #ifdef DMX_MF078
+
   uint8_t chan3 = dmx_slave.getChannelValue(3);
   if(0 <= chan3
       && chan3 <= 8)
@@ -146,8 +180,11 @@ void handleDMXData (void)
   LEDs[0].x[0] = dmx_slave.getChannelValue(4);
   LEDs[0].x[1] = dmx_slave.getChannelValue(5);
   LEDs[0].x[2] = dmx_slave.getChannelValue(6);
-#endif // DMX_MF078
+
   sendPacket();
+
+#endif // DMX_MF078
+
 }
 
 void sendPacket(void)
@@ -169,7 +206,13 @@ void sendPacket(void)
       softSerial.write(LEDs[0].x[1]);
       softSerial.write(LEDs[0].x[2]);
       break;
-    case AIRMSGTYPE_ALL_DIFF:
+    case AIRMSGTYPE_DISP_COLOR:
+      softSerial.write((uint8_t)RGB_SIZE);
+      softSerial.write(DisplayColor.x[0]);
+      softSerial.write(DisplayColor.x[1]);
+      softSerial.write(DisplayColor.x[2]);
+      break;
+    case AIRMSGTYPE_LED_ALL:
       // There us Software Serial .write() can't handle (buf,len) -.-
       softSerial.write((uint8_t)(MAX_NUM_LEDS*RGB_SIZE));
       for(int i=0;i<MAX_NUM_LEDS;i++)
@@ -179,20 +222,25 @@ void sendPacket(void)
         softSerial.write(LEDs[i].x[2]);
       }
       break;
+    case AIRMSGTYPE_LED_ANI:
+    case AIRMSGTYPE_DISP_ANI:
+      softSerial.write(sizeof(uint8_t));
+      softSerial.write(AnimationId);
+      break;
     default:
       break;
   }
   softSerial.println("");
 
-  /*
+  
   char buf[12];
-  softSerial.print("Values: ");
-  softSerial.print(itoa(msgType, buf, 10));
-  softSerial.print(" ");
-  softSerial.print(itoa(LEDs[0].x[0], buf, 10));
-  softSerial.print(" ");
-  softSerial.print(itoa(LEDs[0].x[1], buf, 10));
-  softSerial.print(" ");
-  softSerial.println(itoa(LEDs[0].x[2], buf, 10));
-  */
+  softDebug.print("Values: ");
+  softDebug.print(itoa(msgType, buf, 10));
+  softDebug.print(" ");
+  softDebug.print(itoa(LEDs[0].x[0], buf, 10));
+  softDebug.print(" ");
+  softDebug.print(itoa(LEDs[0].x[1], buf, 10));
+  softDebug.print(" ");
+  softDebug.println(itoa(LEDs[0].x[2], buf, 10));
+  
 }

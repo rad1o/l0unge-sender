@@ -2,7 +2,7 @@
 #define L0UNGE_AIR
 
 #define RGB_SIZE 3
-#define MAX_NUM_LEDS 8
+#define MAX_NUM_LEDS 4
 
 typedef struct rgb { uint8_t x[RGB_SIZE]; } rgb;
 

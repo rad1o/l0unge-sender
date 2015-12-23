@@ -12,7 +12,8 @@
 #include "l0unge_air.h"
 
 // Set up DMX Master Type
-#define DMX_MF078
+//#define DMX_MF078
+#define DMX_L0UNGE
 // Setup up DMX Address of the Board
 // \todo Do this by read 3 input Pins
 #define DMX_ADDRESS 1
@@ -21,7 +22,7 @@
   #define DMX_SLAVE_CHANNELS 8
 #endif
 #ifdef DMX_L0UNGE
-  #define DMX_SLAVE_CHANNELS 29
+  #define DMX_SLAVE_CHANNELS 16
 #endif
 
 // l0unge Message
@@ -39,26 +40,26 @@ SoftwareSerial softSerial(10, 11); // RX, TX
 void setup() {
   // Enable DMX slave interface and start recording
   // DMX data
-  dmx_slave.enable ();  
+  dmx_slave.enable ();
   dmx_slave.setStartAddress (DMX_ADDRESS);
 
   // Register on frame complete event to determine signal timeout
   dmx_slave.onReceiveComplete (OnFrameReceiveComplete);
-  
+
   // Connection to the sender
   softSerial.begin(115200);
 }
 
-void loop() 
+void loop()
 {
   // Get current time
   unsigned long now = millis();
- 
-  // If we didn't receive a DMX frame within the timeout period 
+
+  // If we didn't receive a DMX frame within the timeout period
   // clear all dmx channels
   if (now - lastFrameReceivedTime > dmxTimeoutMillis)
   {
-    dmx_slave.getBuffer().clear();    
+    dmx_slave.getBuffer().clear();
   }
 }
 
@@ -71,7 +72,7 @@ void OnFrameReceiveComplete (unsigned short channelsReceived)
   }
   else
   {
-    // We have received a frame but not all channels we where 
+    // We have received a frame but not all channels we where
     // waiting for, master might have transmitted less
     // channels
   }
@@ -83,10 +84,10 @@ void OnFrameReceiveComplete (unsigned short channelsReceived)
 void handleDMXData (void)
 {
 
-#ifdef DMX_l0unge
-  l0unge_led_mode_t ledMode = 
+#ifdef DMX_L0UNGE
+  l0unge_led_mode_t ledMode =
     (l0unge_led_mode_t)dmx_slave.getChannelValue(LED_MODE);
-  
+
   switch(ledMode)
   {
     case LED_OFF:
@@ -101,7 +102,7 @@ void handleDMXData (void)
     case LED_INDIVIDUAL:
       msgType = AIRMSGTYPE_ALL_DIFF;
       for (int led=0, chan=LED_0; led < MAX_NUM_LEDS; led++, chan+RGB_SIZE)
-      { 
+      {
         LEDs[led].x[0] = dmx_slave.getChannelValue(chan);
         LEDs[led].x[1] = dmx_slave.getChannelValue(chan+1);
         LEDs[led].x[2] = dmx_slave.getChannelValue(chan+2);
@@ -116,7 +117,7 @@ void handleDMXData (void)
 
 // \todo Implement Display Mode
 /*
-  l0unge_display_mode_t displayMode = 
+  l0unge_display_mode_t displayMode =
     (l0unge_display_mode_t)dmx_slave.getChannelValue(DISPLAY_MODE);
   switch(displayMode)
   {
@@ -169,14 +170,14 @@ void sendPacket(void)
       softSerial.write(LEDs[0].x[2]);
       break;
     case AIRMSGTYPE_ALL_DIFF:
-      // There us Software Serial .write() can't handle (buf,len) -.- 
-      softSerial.write((uint8_t)(MAX_NUM_LEDS*RGB_SIZE));  
+      // There us Software Serial .write() can't handle (buf,len) -.-
+      softSerial.write((uint8_t)(MAX_NUM_LEDS*RGB_SIZE));
       for(int i=0;i<MAX_NUM_LEDS;i++)
       {
         softSerial.write(LEDs[i].x[0]);
         softSerial.write(LEDs[i].x[1]);
         softSerial.write(LEDs[i].x[2]);
-      } 
+      }
       break;
     default:
       break;

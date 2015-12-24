@@ -3,12 +3,14 @@
 #define L0UNGE_DMX
 // VERSION x.y
 
+#include "l0unge_air.h"
+
 enum l0unge_dmx_channels
 {
   LED_MODE      = 1,
   DISPLAY_MODE  = 2,
   LED_0         = 3,
-  DISPLAY_COLOR = 27
+  DISPLAY_COLOR = (MAX_NUM_LEDS*RGB_SIZE) + 3 // Display color after last LED
 };
 
 typedef enum l0unge_led_mode

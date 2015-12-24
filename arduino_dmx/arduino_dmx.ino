@@ -22,7 +22,7 @@
   #define DMX_SLAVE_CHANNELS 8
 #endif
 #ifdef DMX_L0UNGE
-  #define DMX_SLAVE_CHANNELS 16
+  #define DMX_SLAVE_CHANNELS 29
 #endif
 
 // l0unge Message
@@ -38,7 +38,9 @@ const unsigned long dmxTimeoutMillis = 10000UL;
 
 // serial Communication to the sender
 SoftwareSerial softSerial(10, 11); // RX, TX
+#ifdef DEBUG_OUTPUT
 SoftwareSerial softDebug(0, 1);
+#endif
 
 void setup() {
   // Enable DMX slave interface and start recording
@@ -51,7 +53,9 @@ void setup() {
 
   // Connection to the sender
   softSerial.begin(115200);
+#ifdef DEBUG_OUTPUT
   softDebug.begin(115200);
+#endif
 
   // Clear LED Array
   memset(&LEDs, 0, MAX_NUM_LEDS*sizeof(rgb));
@@ -110,11 +114,11 @@ void handleDMXData (void)
       break;
     case LED_INDIVIDUAL:
       msgType = AIRMSGTYPE_LED_ALL;
-      for (int led=0, chan=LED_0; led < MAX_NUM_LEDS; led++, chan+RGB_SIZE)
+      for (int led=0; led < MAX_NUM_LEDS; led++)
       {
-        LEDs[led].x[0] = dmx_slave.getChannelValue(chan);
-        LEDs[led].x[1] = dmx_slave.getChannelValue(chan+1);
-        LEDs[led].x[2] = dmx_slave.getChannelValue(chan+2);
+        LEDs[led].x[0] = dmx_slave.getChannelValue(LED_0+(led*RGB_SIZE));
+        LEDs[led].x[1] = dmx_slave.getChannelValue(LED_0+(led*RGB_SIZE)+1);
+        LEDs[led].x[2] = dmx_slave.getChannelValue(LED_0+(led*RGB_SIZE)+2);
       }
       break;
     case LED_MODE_ERR:
@@ -140,9 +144,9 @@ void handleDMXData (void)
       break;
     case DISP_LIKE0:
       msgType = AIRMSGTYPE_DISP_COLOR;
-      DisplayColor.x[0] = LEDs[0].x[0];
-      DisplayColor.x[1] = LEDs[0].x[1];
-      DisplayColor.x[2] = LEDs[0].x[2];
+      DisplayColor.x[0] = dmx_slave.getChannelValue(LED_0);
+      DisplayColor.x[1] = dmx_slave.getChannelValue(LED_0+1);
+      DisplayColor.x[2] = dmx_slave.getChannelValue(LED_0+2);
       break;
     case DISP_INDIVIDUAL:
       msgType = AIRMSGTYPE_DISP_COLOR;
@@ -232,7 +236,7 @@ void sendPacket(void)
   }
   softSerial.println("");
 
-  
+#ifdef DEBUG_OUTPUT
   char buf[12];
   softDebug.print("Values: ");
   softDebug.print(itoa(msgType, buf, 10));
@@ -241,6 +245,24 @@ void sendPacket(void)
   softDebug.print(" ");
   softDebug.print(itoa(LEDs[0].x[1], buf, 10));
   softDebug.print(" ");
-  softDebug.println(itoa(LEDs[0].x[2], buf, 10));
-  
+  softDebug.print(itoa(LEDs[0].x[2], buf, 10));
+  softDebug.print("    ");
+  softDebug.print(itoa(LEDs[1].x[0], buf, 10));
+  softDebug.print(" ");
+  softDebug.print(itoa(LEDs[1].x[1], buf, 10));
+  softDebug.print(" ");
+  softDebug.print(itoa(LEDs[1].x[2], buf, 10));
+  softDebug.print("    ");
+  softDebug.print(itoa(LEDs[2].x[0], buf, 10));
+  softDebug.print(" ");
+  softDebug.print(itoa(LEDs[2].x[1], buf, 10));
+  softDebug.print(" ");
+  softDebug.print(itoa(LEDs[2].x[2], buf, 10));
+  softDebug.print("    ");
+  softDebug.print(itoa(DisplayColor.x[0], buf, 10));
+  softDebug.print(" ");
+  softDebug.print(itoa(DisplayColor.x[1], buf, 10));
+  softDebug.print(" ");
+  softDebug.println(itoa(DisplayColor.x[2], buf, 10));
+#endif // DEBUG_OUTPUT  
 }
